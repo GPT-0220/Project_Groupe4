@@ -243,4 +243,4 @@ Pour vérifier le bon fonctionnement:
 
 ## 🤝 Auteur
 
-Projet réalisé pour le cours de développement Web - SensGuinée
+Projet réalisé pour le cours de NoSQL - SensGuinée
