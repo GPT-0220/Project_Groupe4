@@ -158,4 +158,127 @@ router.get('/logs', adminAuth, async (req, res) => {
   }
 });
 
+// ==================== GESTION DES CAPTEURS ====================
+
+// Récupérer tous les capteurs (admin only)
+router.get('/capteurs', adminAuth, async (req, res) => {
+  try {
+    const capteurs = await Capteur.find().sort({ batiment: 1, type: 1 });
+    res.json(capteurs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Créer un nouveau capteur (admin only)
+router.post('/capteurs', adminAuth, async (req, res) => {
+  try {
+    const { capteur_id, nom, type, batiment, etage, salle, seuil_alerte, seuil_min, seuil_max, unite } = req.body;
+    
+    // Vérifier si le capteur existe déjà
+    const existingCapteur = await Capteur.findOne({ capteur_id });
+    if (existingCapteur) {
+      return res.status(400).json({ error: 'Ce capteur_id est déjà utilisé' });
+    }
+    
+    const capteur = new Capteur({
+      capteur_id,
+      nom,
+      type,
+      batiment,
+      etage,
+      salle,
+      seuil_alerte,
+      actif: true
+    });
+    
+    await capteur.save();
+    
+    res.status(201).json({
+      message: 'Capteur créé avec succès',
+      capteur
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Mettre à jour un capteur (admin only)
+router.put('/capteurs/:id', adminAuth, async (req, res) => {
+  try {
+    const { nom, type, batiment, etage, salle, seuil_alerte, actif } = req.body;
+    
+    const capteur = await Capteur.findById(req.params.id);
+    if (!capteur) {
+      return res.status(404).json({ error: 'Capteur non trouvé' });
+    }
+    
+    if (nom) capteur.nom = nom;
+    if (type) capteur.type = type;
+    if (batiment) capteur.batiment = batiment;
+    if (etage !== undefined) capteur.etage = etage;
+    if (salle) capteur.salle = salle;
+    if (seuil_alerte !== undefined) capteur.seuil_alerte = seuil_alerte;
+    if (actif !== undefined) capteur.actif = actif;
+    
+    await capteur.save();
+    
+    res.json({
+      message: 'Capteur mis à jour avec succès',
+      capteur
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Supprimer un capteur (admin only)
+router.delete('/capteurs/:id', adminAuth, async (req, res) => {
+  try {
+    const capteur = await Capteur.findById(req.params.id);
+    if (!capteur) {
+      return res.status(404).json({ error: 'Capteur non trouvé' });
+    }
+    
+    // Supprimer aussi tous les relevés associés
+    await Releve.deleteMany({ capteur_id: capteur.capteur_id });
+    
+    await Capteur.findByIdAndDelete(req.params.id);
+    
+    res.json({ message: 'Capteur et ses relevés supprimés avec succès' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Activer/Désactiver un capteur (admin only)
+router.patch('/capteurs/:id/toggle', adminAuth, async (req, res) => {
+  try {
+    const capteur = await Capteur.findById(req.params.id);
+    if (!capteur) {
+      return res.status(404).json({ error: 'Capteur non trouvé' });
+    }
+    
+    capteur.actif = !capteur.actif;
+    await capteur.save();
+    
+    res.json({
+      message: `Capteur ${capteur.actif ? 'activé' : 'désactivé'} avec succès`,
+      capteur
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer les capteurs par bâtiment (admin only)
+router.get('/capteurs/batiment/:batiment', adminAuth, async (req, res) => {
+  try {
+    const capteurs = await Capteur.find({ batiment: req.params.batiment }).sort({ type: 1 });
+    res.json(capteurs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
