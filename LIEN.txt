@@ -1,0 +1,8 @@
+
+bash
+npm start
+Terminal 2 (Frontend):
+
+bash
+cd frontend
+npm run dev
